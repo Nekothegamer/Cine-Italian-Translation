@@ -1,0 +1,121 @@
+import gi
+import os
+
+gi.require_version("Adw", "1")
+gi.require_version("Gdk", "4.0")
+gi.require_version("GLib", "2.0")
+gi.require_version("Gtk", "4.0")
+from gi.repository import Adw, Gdk, GLib, Gtk
+from gettext import gettext as _
+
+
+@Gtk.Template(resource_path="/io/github/diegopvlk/Cine/playlist.ui")
+class Playlist(Adw.Dialog):
+    __gtype_name__ = "Playlist"
+
+    toast_overlay: Adw.ToastOverlay = Gtk.Template.Child()
+    spinner: Adw.Spinner = Gtk.Template.Child()
+    playlist_clamp: Adw.Clamp = Gtk.Template.Child()
+    playlist_list_box: Gtk.ListBox = Gtk.Template.Child()
+    drop_indicator_revealer: Gtk.Revealer = Gtk.Template.Child()
+
+    def __init__(self, window, **kwargs):
+        super().__init__(**kwargs)
+        self.win = window
+        self.mpv = window.mpv
+
+        parent_height = window.get_height()
+        self.set_content_height(parent_height)
+
+        self._populate_list()
+
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target.connect("enter", self._on_drop_enter)
+        drop_target.connect("leave", self._on_drop_leave)
+        drop_target.connect("drop", self._on_drop)
+        self.add_controller(drop_target)
+
+    def _on_drop_enter(self, target, _x, _y):
+        GLib.timeout_add(10, self.drop_indicator_revealer.set_reveal_child, True)
+        drop = target.get_current_drop()
+
+        def on_read_done(source, result):
+            try:
+                source.read_value_finish(result)
+                self.spinner.set_visible(True)
+            except GLib.Error as e:
+                toast = Adw.Toast.new(_("File Error") + f": {e.message}")
+                self.toast_overlay.add_toast(toast)
+                return
+
+        drop.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, on_read_done)
+
+        return True
+
+    def _on_drop_leave(self, _target):
+        self.spinner.set_visible(False)
+        GLib.timeout_add(10, self.drop_indicator_revealer.set_reveal_child, False)
+
+    def _on_drop(self, _target, _value, _x, _y):
+        self.win._on_drop(_target, _value, _x, _y, from_playlist=True)
+        self._populate_list()
+        self.spinner.set_visible(False)
+
+    def _populate_list(self):
+        self.playlist_list_box.remove_all()
+        playlist = self.mpv.playlist
+
+        for index, item in enumerate(playlist):
+            path = item.get("filename", "")
+            subtitle = item.get("title") or os.path.basename(path)
+            parent_dir = os.path.basename(os.path.dirname(path))
+            title = parent_dir if parent_dir else path
+
+            row = Adw.ActionRow(title=title, subtitle=subtitle)
+            row.add_css_class("property")
+            row.set_activatable(True)
+
+            icon_name = "applications-multimedia-symbolic"
+
+            if os.path.isdir(path):
+                icon_name = "folder-symbolic"
+                if not os.listdir(path):
+                    row.set_sensitive(False)
+
+            row.set_icon_name(icon_name)
+            row.connect("activated", self._on_file_activated, index)
+            self.playlist_list_box.append(row)
+
+        GLib.idle_add(self._scroll_to_playing)
+
+    def _scroll_to_playing(self):
+        if hasattr(self, "curr_playing_row") and self.curr_playing_row:
+            self.curr_playing_row.remove_css_class("playing-item-playlist")
+
+        if not hasattr(self, "playing_icon") or not self.playing_icon:
+            self.playing_icon = Gtk.Image.new_from_icon_name(
+                "media-playback-start-symbolic"
+            )
+
+        parent = self.playing_icon.get_parent()
+        if isinstance(parent, (Gtk.Box, Adw.ActionRow)):
+            parent.remove(self.playing_icon)
+
+        current_pos = self.mpv.playlist_pos
+        new_row = self.playlist_list_box.get_row_at_index(current_pos)
+
+        if isinstance(new_row, (Gtk.Box, Adw.ActionRow)):
+            new_row.grab_focus()
+            new_row.add_css_class("playing-item-playlist")
+            new_row.add_suffix(self.playing_icon)
+
+            self.curr_playing_row = new_row
+
+    def _on_file_activated(self, _row, index):
+        self.mpv.playlist_pos = index
+        self.mpv.pause = False
+        self.close()
+
+    @Gtk.Template.Callback()
+    def _on_add_playlist_files(self, _button):
+        self.win._open_add_dialog(_("Add Files"), "playlist-add", from_playlist=True)

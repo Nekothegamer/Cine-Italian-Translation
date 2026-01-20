@@ -1,0 +1,1081 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $CineWindow: Adw.ApplicationWindow {
+  name: "io-github-diegopvlk-Cine";
+  title: _("Cine");
+  default-width: 800;
+  default-height: 600;
+  width-request: 332;
+  height-request: 187;
+
+  Adw.Breakpoint breakpoint {
+    condition ("max-width: 495sp")
+
+    setters {
+      controls_separator.visible: false;
+    }
+  }
+
+  content: Adw.ToastOverlay toast_overlay {
+    WindowHandle {
+      Overlay video_overlay {
+        styles [
+          "video-overlay",
+        ]
+
+        [overlay]
+        Revealer revealer_pause_indicator {
+          transition-duration: 350;
+          transition-type: crossfade;
+
+          Image pause_indicator {
+            styles [
+              "icon-pause-play",
+            ]
+          }
+        }
+
+        [overlay]
+        Adw.Spinner spinner {
+          halign: center;
+          valign: center;
+          width-request: 90;
+          height-request: 90;
+          visible: false;
+
+          styles [
+            "cine-spinner",
+          ]
+        }
+
+        [overlay]
+        Revealer revealer_ui {
+          transition-duration: 300;
+          transition-type: crossfade;
+
+          Box {
+            orientation: vertical;
+
+            styles [
+              "header-and-controls",
+            ]
+
+            Adw.HeaderBar headerbar {
+              valign: start;
+
+              styles [
+                "osd",
+                "header-bar",
+              ]
+
+              [start]
+              MenuButton open_menu_button {
+                valign: center;
+                label: _("Open");
+                visible: bind start_page.visible inverted;
+                always-show-arrow: true;
+
+                menu-model: menu {
+                  item {
+                    label: _("Open Files");
+                    action: "win.clear-and-add";
+                  }
+
+                  item {
+                    label: _("Open Folder");
+                    action: "win.open-folder";
+                  }
+
+                  item {
+                    label: _("Add Files");
+                    action: "win.add-playlist-files";
+                  }
+
+                  item {
+                    label: _("Add Subtitle Track");
+                    action: "win.add-sub-files";
+                  }
+
+                  item {
+                    label: _("Add Audio Track");
+                    action: "win.add-audio-files";
+                  }
+                };
+              }
+
+              [end]
+              MenuButton primary_menu_button {
+                valign: center;
+                primary: true;
+                icon-name: "open-menu-symbolic";
+                tooltip-text: _("Main Menu");
+
+                menu-model: menu primary_menu {
+                  section {
+                    item {
+                      label: _("New Window");
+                      action: "app.new-window";
+                    }
+
+                    item {
+                      label: _("Preferences");
+                      action: "app.preferences";
+                    }
+
+                    item {
+                      label: _("Keyboard Shortcuts");
+                      action: "win.custom-shortcuts";
+                    }
+
+                    item {
+                      label: _("About Cine");
+                      action: "app.about";
+                    }
+                  }
+                };
+              }
+            }
+
+            Separator {
+              vexpand: true;
+              opacity: 0;
+            }
+
+            Box controls_box {
+              styles [
+                "osd",
+                "controls",
+              ]
+
+              valign: end;
+              orientation: vertical;
+              visible: false;
+
+              Adw.WrapBox {
+                align: 0.5;
+                valign: center;
+                margin-top: 10;
+                margin-start: 13;
+                margin-end: 13;
+                child-spacing: 5;
+
+                Button previous_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "media-skip-backward-symbolic";
+                  tooltip-text: _("Previous");
+                }
+
+                Button play_pause_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "media-playback-start-symbolic";
+                  tooltip-text: _("Play/Pause");
+                }
+
+                Button next_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "media-skip-forward-symbolic";
+                  tooltip-text: _("Next");
+                }
+
+                MenuButton volume_menu_button {
+                  halign: center;
+                  icon-name: "audio-volume-high-symbolic";
+                  direction: up;
+                  tooltip-text: _("Volume");
+
+                  styles [
+                    "flat",
+                    "circular",
+                  ]
+
+                  popover: Popover {
+                    Box {
+                      ToggleButton mute_toggle_button {
+                        icon-name: "audio-volume-muted-symbolic";
+                        tooltip-text: _("Mute");
+
+                        styles [
+                          "flat",
+                          "circular",
+                        ]
+                      }
+
+                      Scale volume_scale {
+                        width-request: 180;
+
+                        adjustment: Adjustment volume_scale_adjustment {
+                          lower: 0;
+                          upper: 130;
+                          value: 0;
+                        };
+                      }
+                    }
+                  };
+                }
+
+                MenuButton subtitles_menu_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  direction: up;
+                  halign: center;
+                  icon-name: "media-view-subtitles-symbolic";
+                  tooltip-text: _("Subtitles");
+
+                  menu-model: menu subtitles_menu {
+                    // item {
+                    //   label: _("Add Subtitle Track");
+                    //   action: "win.add-sub-files";
+                    // }
+                    // item {
+                    //   label: _("None");
+                    //   action: "win.select-subtitle";
+                    //   target: "none";
+                    // }
+                  };
+                }
+
+                MenuButton audio_tracks_menu_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  direction: up;
+                  halign: center;
+                  icon-name: "audio-x-generic-symbolic";
+                  tooltip-text: _("Audio");
+
+                  menu-model: menu audio_tracks_menu {
+                    // item {
+                    //   label: _("Add Audio Track");
+                    //   action: "win.add-audio-files";
+                    // }
+                  };
+                }
+
+                Separator controls_separator {
+                  hexpand: true;
+                  opacity: 0;
+                }
+
+                ToggleButton playlist_shuffle_toggle_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "media-playlist-shuffle-symbolic";
+                  tooltip-text: _("Shuffle Playlist");
+                  valign: end;
+                }
+
+                ToggleButton playlist_loop_toggle_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "media-playlist-repeat-symbolic";
+                  tooltip-text: _("Loop Playlist");
+                  valign: end;
+                }
+
+                ToggleButton loop_file_toggle_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "media-playlist-repeat-song-symbolic";
+                  tooltip-text: _("Loop File");
+                  valign: end;
+                }
+
+                Button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  tooltip-text: _("Playlist");
+                  icon-name: "view-list-bullet-symbolic";
+                  valign: end;
+                  action-name: "win.open-playlist-dialog";
+                }
+
+                MenuButton options_menu_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  direction: up;
+                  halign: center;
+                  icon-name: "emblem-system-symbolic";
+                  tooltip-text: _("Options");
+
+                  popover: Popover {
+                    styles [
+                      "popover-scrolled",
+                    ]
+
+                    ScrolledWindow {
+                      propagate-natural-height: true;
+                      propagate-natural-width: true;
+
+                      Box {
+                        orientation: vertical;
+                        spacing: 8;
+                        // --- ASPECT RATIO ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Aspect Ratio");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_aspect_reset();
+                            }
+
+                            Label {
+                              label: _("Aspect Ratio");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "go-previous-symbolic";
+                              tooltip-text: _("Previous Aspect Ratio");
+                              clicked => $_on_aspect_prev();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "go-next-symbolic";
+                              tooltip-text: _("Next Aspect Ratio");
+                              clicked => $_on_aspect_next();
+                            }
+                          }
+                        }
+
+                        // --- ROTATE ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Rotation");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_rotate_reset();
+                            }
+
+                            Label {
+                              label: _("Rotate");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "object-rotate-left-symbolic";
+                              tooltip-text: _("Rotate Left");
+                              clicked => $_on_rotate_left();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "object-rotate-right-symbolic";
+                              tooltip-text: _("Rotate Right");
+                              clicked => $_on_rotate_right();
+                            }
+                          }
+                        }
+
+                        // --- FLIP ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Flip");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_flip_reset();
+                            }
+
+                            Label {
+                              label: _("Flip");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "object-flip-horizontal-symbolic";
+                              tooltip-text: _("Flip Horizontally");
+                              clicked => $_on_flip_horiz();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "object-flip-vertical-symbolic";
+                              tooltip-text: _("Flip Vertically");
+                              clicked => $_on_flip_vert();
+                            }
+                          }
+                        }
+
+                        // --- ZOOM ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Zoom");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_zoom_reset();
+                            }
+
+                            Label {
+                              label: _("Zoom");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Zoom Out");
+                              clicked => $_on_zoom_dec();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Zoom In");
+                              clicked => $_on_zoom_inc();
+                            }
+                          }
+                        }
+
+                        // --- CONTRAST ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Contrast");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_contrast_reset();
+                            }
+
+                            Label {
+                              label: _("Contrast");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Decrease Contrast");
+                              clicked => $_on_contrast_dec();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Increase Contrast");
+                              clicked => $_on_contrast_inc();
+                            }
+                          }
+                        }
+
+                        // --- BRIGHTNESS ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Brightness");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_brightness_reset();
+                            }
+
+                            Label {
+                              label: _("Brightness");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Decrease Brightness");
+                              clicked => $_on_brightness_dec();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Increase Brightness");
+                              clicked => $_on_brightness_inc();
+                            }
+                          }
+                        }
+
+                        // --- GAMMA ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Gamma");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_gamma_reset();
+                            }
+
+                            Label {
+                              label: _("Gamma");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Decrease Gamma");
+                              clicked => $_on_gamma_dec();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Increase Gamma");
+                              clicked => $_on_gamma_inc();
+                            }
+                          }
+                        }
+
+                        // --- SATURATION ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Saturation");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_saturation_reset();
+                            }
+
+                            Label {
+                              label: _("Saturation");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Decrease Saturation");
+                              clicked => $_on_saturation_dec();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Increase Saturation");
+                              clicked => $_on_saturation_inc();
+                            }
+                          }
+                        }
+
+                        // --- SUBTITLE DELAY ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Subtitle Delay");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_sub_delay_reset();
+                            }
+
+                            Label {
+                              label: _("Subtitle Delay");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Decrease Subtitle Delay");
+                              clicked => $_on_sub_delay_down();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Increase Subtitle Delay");
+                              clicked => $_on_sub_delay_up();
+                            }
+                          }
+                        }
+
+                        // --- AUDIO DELAY ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Audio Delay");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_audio_delay_reset();
+                            }
+
+                            Label {
+                              label: _("Audio Delay");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Decrease Audio Delay");
+                              clicked => $_on_audio_delay_down();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Increase Audio Delay");
+                              clicked => $_on_audio_delay_up();
+                            }
+                          }
+                        }
+
+                        // --- PLAYBACK SPEED ---
+                        Box {
+                          Box {
+                            halign: start;
+
+                            Button {
+                              icon-name: "edit-undo-symbolic";
+                              tooltip-text: _("Reset Playback Speed");
+
+                              styles [
+                                "flat",
+                              ]
+
+                              clicked => $_on_speed_reset();
+                            }
+
+                            Label {
+                              label: _("Playback Speed");
+                              halign: start;
+                              margin-start: 8;
+
+                              styles [
+                                "heading",
+                              ]
+                            }
+                          }
+
+                          Separator {
+                            hexpand: true;
+                            opacity: 0;
+                            margin-end: 16;
+                          }
+
+                          Box {
+                            halign: end;
+                            spacing: 8;
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-decrease-symbolic";
+                              tooltip-text: _("Increase Playback Speed");
+                              clicked => $_on_speed_dec();
+                            }
+
+                            Button {
+                              width-request: 50;
+                              icon-name: "value-increase-symbolic";
+                              tooltip-text: _("Decrease Playback Speed");
+                              clicked => $_on_speed_inc();
+                            }
+                          }
+                        }
+                      }
+                    }
+                  };
+                }
+
+                Button fullscreen_button {
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+
+                  icon-name: "view-fullscreen-symbolic";
+                  tooltip-text: _("Fullscreen");
+                  valign: end;
+                }
+              }
+
+              Box {
+                valign: center;
+                margin-start: 3;
+                margin-end: 20;
+                margin-bottom: 5;
+                height-request: 37;
+
+                Box vid_progress_scale_box {
+                  Scale video_progress_scale {
+                    halign: fill;
+                    hexpand: true;
+                    valign: center;
+                    margin-start: 8;
+                    margin-end: 3;
+
+                    adjustment: Adjustment video_progress_adjustment {
+                      lower: 0;
+                      upper: 100;
+                      value: 0;
+                    };
+                  }
+                }
+
+                Label time_elapsed_label {
+                  halign: end;
+                  label: "0:00";
+                  width-chars: 5;
+
+                  styles [
+                    "heading",
+                    "numeric",
+                    "time-elapsed",
+                  ]
+                }
+
+                Separator {
+                  styles [
+                    "time-separator",
+                  ]
+
+                  height-request: 16;
+                  width-request: 2;
+                  valign: center;
+                  margin-start: 10;
+                  margin-end: 10;
+                }
+
+                Label time_total_label {
+                  halign: end;
+                  label: "0:00";
+
+                  styles [
+                    "heading",
+                    "numeric",
+                  ]
+                }
+              }
+            }
+          }
+        }
+
+        [overlay]
+        Adw.StatusPage start_page {
+          margin-top: 48;
+          icon-name: "io.github.diegopvlk.Cine";
+          title: _("Drag and Drop Files Here");
+
+          styles [
+            "start-page",
+          ]
+
+          Box {
+            spacing: 12;
+            halign: center;
+            valign: center;
+            orientation: vertical;
+
+            Button {
+              label: _("Open…");
+              halign: center;
+              action-name: "win.clear-and-add";
+
+              styles [
+                "suggested-action",
+                "pill",
+              ]
+            }
+
+            Button {
+              label: _("Open Folder");
+              action-name: "win.open-folder";
+
+              styles [
+                "pill",
+              ]
+            }
+          }
+        }
+
+        [overlay]
+        Revealer revealer_drop_indicator {
+          transition-duration: 200;
+          transition-type: crossfade;
+          can-focus: false;
+          can-target: false;
+
+          Box {
+            styles [
+              "drop-indicator",
+            ]
+
+            homogeneous: true;
+
+            Box {
+              valign: center;
+
+              Image drop_icon {
+                icon-name: "list-add-symbolic";
+                pixel-size: 64;
+              }
+
+              orientation: vertical;
+              spacing: 12;
+
+              Label drop_label {
+                label: "Add to Playlist";
+
+                styles [
+                  "title-1",
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+}
