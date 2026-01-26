@@ -529,7 +529,8 @@ class CineWindow(Adw.ApplicationWindow):
                 filter.add_suffix(s)
         elif mode == "audio-add":
             filter.set_name(_("Audio"))
-            filter.add_mime_type("audio/*")
+            for m in ["video/*", "audio/*"]:
+                filter.add_mime_type(m)
         else:
             filter.set_name(_("Media"))
             for m in ["video/*", "audio/*", "image/*"]:
