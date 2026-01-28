@@ -9,15 +9,23 @@ from gi.repository import Adw, Gdk, Gio, Gtk
 settings = Gio.Settings.new("io.github.diegopvlk.Cine")
 
 
-def sync_mpv_with_settings(player):
+def sync_mpv_with_settings(window):
     """Apply settings values to the mpv instance"""
+    player = window.mpv
     player["sub-color"] = settings.get_string("subtitle-color")
     player["sub-scale"] = settings.get_double("subtitle-scale")
     player["sub-font"] = settings.get_string("subtitle-font")
     player["slang"] = settings.get_string("subtitle-languages")
     player["alang"] = settings.get_string("audio-languages")
     player["save-position-on-quit"] = settings.get_boolean("save-video-position")
+    hwdec_enabled = settings.get_boolean("hwdec")
     norm_enabled = settings.get_boolean("normalize-volume")
+
+    if hwdec_enabled:
+        player["hwdec"] = window.conf_hwdec + ["auto"]
+    else:
+        player["hwdec"] = "no"
+
     if norm_enabled:
         player.command("af", "add", "@cine_loudnorm:lavfi=[loudnorm=I=-20]")
 
@@ -36,6 +44,7 @@ class Preferences(Adw.Dialog):
     subtitle_scale_row = Gtk.Template.Child()
     subtitle_lang_row = Gtk.Template.Child()
     audio_lang_row = Gtk.Template.Child()
+    hwdec_row = Gtk.Template.Child()
     normalize_volume_row = Gtk.Template.Child()
     save_position_switch = Gtk.Template.Child()
 
@@ -93,6 +102,12 @@ class Preferences(Adw.Dialog):
             Gio.SettingsBindFlags.DEFAULT,
         )
         settings.bind(
+            "hwdec",
+            self.hwdec_row,
+            "active",
+            Gio.SettingsBindFlags.DEFAULT,
+        )
+        settings.bind(
             "normalize-volume",
             self.normalize_volume_row,
             "active",
@@ -112,8 +127,9 @@ class Preferences(Adw.Dialog):
             "subtitle-font": self._on_sub_font_changed,
             "subtitle-languages": self._on_slang_changed,
             "audio-languages": self._on_alang_changed,
-            "save-video-position": self._on_save_pos_changed,
+            "hwdec": self._on_hwdec_changed,
             "normalize-volume": self._on_norm_volume_changed,
+            "save-video-position": self._on_save_pos_changed,
         }
 
         self._setting_ids = [
@@ -144,6 +160,13 @@ class Preferences(Adw.Dialog):
         self.player["save-position-on-quit"] = settings.get_boolean(
             "save-video-position"
         )
+
+    def _on_hwdec_changed(self, settings, _key):
+        hwdec_enabled = settings.get_boolean("hwdec")
+        if hwdec_enabled:
+            self.player["hwdec"] = self.win.conf_hwdec + ["auto"]
+        else:
+            self.player["hwdec"] = "no"
 
     def _on_norm_volume_changed(self, settings, _key):
         norm_enabled = settings.get_boolean("normalize-volume")

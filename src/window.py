@@ -157,6 +157,9 @@ class CineWindow(Adw.ApplicationWindow):
             volume_max=150,
         )
 
+        self.conf_hwdec = list(
+            filter(lambda x: x != "no", cast(list, self.mpv["hwdec"]))
+        )
         self.mpv["keep-open"] = "yes"
         self.mpv["keep-open-pause"] = "no"
         self.mpv["vo"] = "libmpv"
@@ -174,7 +177,7 @@ class CineWindow(Adw.ApplicationWindow):
         if os.path.exists(INPUT_CONF):
             self.mpv.command("load-input-conf", INPUT_CONF)
 
-        sync_mpv_with_settings(self.mpv)
+        sync_mpv_with_settings(self)
 
     def _setup_actions(self):
         self._create_action("clear-and-add", self._on_clear_and_add)
