@@ -104,6 +104,8 @@ class CineWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         self.app: Gtk.Application = cast(Gtk.Application, kwargs.get("application"))
 
+        Gtk.WindowGroup().add_window(self)
+
         self.gl_area: Gtk.GLArea = Gtk.GLArea()
         self.offload: Gtk.GraphicsOffload = Gtk.GraphicsOffload(child=self.gl_area)
         self.offload.set_black_background(True)
