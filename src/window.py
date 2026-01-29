@@ -170,6 +170,7 @@ class CineWindow(Adw.ApplicationWindow):
         self.mpv["osc"] = "no"
         self.mpv["load-console"] = "no"
         self.mpv.command("change-list", "watch-later-options", "remove", "vid")
+        self.mpv.command("change-list", "watch-later-options", "remove", "aid")
 
         self._setup_actions()
         self._setup_elements()
